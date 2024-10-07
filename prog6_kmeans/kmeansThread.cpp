@@ -61,6 +61,8 @@ double dist(double *x, double *y, int nDim) {
   return sqrt(accum);
 }
 
+//takes in startM and endM so that we can make sure that we are only working on
+//our thread's alloted portions
 void computeAssignmentsThreads(WorkerArgs *const args, int startM, int endM)
 {
     double *minDist = new double[args->M];
@@ -81,6 +83,7 @@ void computeAssignmentsThreads(WorkerArgs *const args, int startM, int endM)
     free(minDist);
 }
 
+//modified to support multi-threading over different values of m
 void computeAssignments(WorkerArgs *const args) {
    int MAX_THREADS = 32;
    std::thread workers[MAX_THREADS];
