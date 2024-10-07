@@ -239,7 +239,7 @@ void clampedExpSerial(float* values, int* exponents, float* output, int N) {
     }
   }
 }
-
+// Returns the sum of all elements in values using SIMD vector instructions
 void clampedExpVector(float* values, int* exponents, float* output, int N) {
     __cs149_vec_float x;
     __cs149_vec_int y;
@@ -256,20 +256,20 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
 
     _cs149_vload_float(x, values + i, maskAll);
     _cs149_vload_int(y, exponents + i, maskAll);
-
+    
     while (true){
         _cs149_vlt_int(maskIsZero, y, one, maskAll);
-        maskIsZero = _cs149_mask_not(maskIsZero);
+        maskIsZero = _cs149_mask_not(maskIsZero);          // mask exponents that are already finished
 
-        if(_cs149_cntbits(maskIsZero) == 0) break;
+        if(_cs149_cntbits(maskIsZero) == 0) break;         // exit when all exponenets are finished 0
 
         _cs149_vmult_float(result, result, x, maskIsZero);
 
-        _cs149_vsub_int(y, y, one, maskIsZero);
-
+        _cs149_vsub_int(y, y, one, maskIsZero);            // reduce exponenets by 1 every iteration
+ 
     }
 
-    _cs149_vgt_float(maskOverMax, result, maxNum, maskAll);
+    _cs149_vgt_float(maskOverMax, result, maxNum, maskAll); // clamp every value at max
     _cs149_vmove_float(result, maxNum, maskOverMax);
 
     _cs149_vstore_float(output + i, result, maskAll);
@@ -298,19 +298,19 @@ float arraySumVector(float* values, int N) {
       maskAll = _cs149_init_ones();
       
       _cs149_vload_float(next, values + i, maskAll);
-      _cs149_vadd_float(sum, sum, next, maskAll);
+      _cs149_vadd_float(sum, sum, next, maskAll);  // add values into sum vec in parallel in different lanes
   }
   
   int vec_size = VECTOR_WIDTH;
 
-  while (vec_size > 1) {
-      _cs149_hadd_float(sum, sum);
+  while (vec_size > 1) {                           // add all lanes together in sum vec
+      _cs149_hadd_float(sum, sum);                 // add adjacent lanes and then move every other lane to front
       _cs149_interleave_float(sum, sum);
 
       vec_size /= 2;
   }
 
-  float sumArray[VECTOR_WIDTH];
+  float sumArray[VECTOR_WIDTH];                   // first value in array contains sum 
   
   _cs149_vstore_float(sumArray, sum, maskAll);
 
